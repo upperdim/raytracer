@@ -7,6 +7,10 @@ class Sphere {
 		this.r = radius;
 	}
 
+	// Return value list:
+	// bool:  whether ray from cameraPos with rayDirection intersects this sphere or not
+	// vec3d: intersection point
+	// vec3d: normal vector of sphere surface at the intersection point
 	intersection(cameraPos, rayDirection) {
 		let a = p5.Vector.dot(rayDirection, rayDirection);
 		let b = 2 * p5.Vector.dot(rayDirection, p5.Vector.sub(cameraPos, this.pos));
@@ -14,7 +18,18 @@ class Sphere {
 
 		let delta = b*b - 4*a*c; // determinant
 
-		return delta >= 0;
+		if (delta < 0) {
+			return [false, 0, 0];
+		} else {
+			let t = (-b - sqrt(delta)) / (2*a);
+			let intersectionPoint = p5.Vector.add(cameraPos, p5.Vector.mult(rayDirection, t));
+			
+			let normalVec = p5.Vector.sub(intersectionPoint, this.pos);
+			// normalVec = p5.Vector.add(normalVec, p5.Vector.random3D()); // adding randomness to make it more matte
+			normalVec.normalize();
+
+			return [true, intersectionPoint, normalVec];
+		}
 	}
 }
 
@@ -24,6 +39,7 @@ function drawFrame() {
 	let viewportHeight = 20;	
 
 	let sphere = new Sphere(0, 0, 20, 5);
+	let lightSrc = createVector(0, 100, 20);
 
 	let startXcoord = -(viewportWidth / 2);
 	let startYcoord = -(viewportHeight / 2);
@@ -42,11 +58,46 @@ function drawFrame() {
 			rayDir.normalize();
 
 			// Check intersection
-			let hit = sphere.intersection(camPos, rayDir);
-			if (hit) {
-				rect(x, y, 1, 1);
-			} else {
+			let [isHit, intersectionPoint, normalVec] = sphere.intersection(camPos, rayDir);
+			
+			if (isHit) {
+				// -------------------------
+				// Light source calculations
+				// -------------------------
+				let vecToLightSrc = p5.Vector.sub(lightSrc, intersectionPoint);
+				vecToLightSrc.normalize();
 
+				// Cos of angle between normal and vector to light src, this will determine the lighting
+				let cosWithLightSrc = p5.Vector.dot(normalVec, vecToLightSrc);
+				cosWithLightSrc = constrain(cosWithLightSrc, 0, 1); // clamp cos
+
+				// ------------------------------------
+				// Light source reflection calculations
+				// ------------------------------------
+				let lightReflectionRay = p5.Vector.sub(p5.Vector.mult(normalVec, 2 * p5.Vector.dot(vecToLightSrc, normalVec)), vecToLightSrc);
+				lightReflectionRay.normalize();
+
+				// Randomize reflected ray to make it more matte
+				// lightReflectionRay = p5.Vector.add(lightReflectionRay, p5.Vector.random3D());
+				// lightReflectionRay.normalize();
+
+				// Cos of angle between ray and light reflection ray, this will determine the reflection
+				let cosWithReflection = p5.Vector.dot(lightReflectionRay, p5.Vector.mult(rayDir, -1)); // we invert rayDir direction in order to get the correct angle
+				cosWithReflection = constrain(cosWithReflection, 0, 1); // clamp cos
+
+				// -----------------
+				// Shading the pixel
+				// -----------------
+				cosWithLightSrc = pow(cosWithLightSrc, 3);     // adjust phong factors of cos
+				cosWithReflection = pow(cosWithReflection, 3); // adjust phong factors of cos
+
+				let lighting = cosWithLightSrc * cosWithReflection * 255;
+
+				stroke(lighting, lighting, lighting);
+				rect(x, SCR_HEIGHT - y, 1, 1); // our Y-axis is inverse of screen Y-axis
+			} else {
+				stroke(50, 50, 100 + rayDir.y * 1000); // gradient
+				rect(x, SCR_HEIGHT - y, 1, 1); // our Y-axis is inverse of screen Y-axis
 			}
 		}
 	}
