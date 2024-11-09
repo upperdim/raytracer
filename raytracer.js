@@ -39,7 +39,7 @@ function drawFrame() {
 	let viewportHeight = 20;	
 
 	let sphere = new Sphere(0, 0, 20, 5);
-	let lightSrc = createVector(0, 100, 20);
+	let lightSrc = createVector(50, 100, -20);
 
 	let startXcoord = -(viewportWidth / 2);
 	let startYcoord = -(viewportHeight / 2);
@@ -91,9 +91,9 @@ function drawFrame() {
 				cosWithLightSrc = pow(cosWithLightSrc, 3);     // adjust phong factors of cos
 				cosWithReflection = pow(cosWithReflection, 3); // adjust phong factors of cos
 
-				let lighting = cosWithLightSrc * cosWithReflection * 255;
+				let lighting = cosWithLightSrc * cosWithReflection * 180;
 
-				stroke(lighting, lighting, lighting);
+				stroke(75 + lighting, 75 + lighting, 75 + lighting);
 				rect(x, SCR_HEIGHT - y, 1, 1); // our Y-axis is inverse of screen Y-axis
 			} else {
 				stroke(50, 50, 100 + rayDir.y * 1000); // gradient
